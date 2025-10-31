@@ -1010,7 +1010,28 @@ app.use((error, req, res, next) => {
     message: error.message,
   });
 });
+app.post('/api/debug/reset-passwords', async (req, res) => {
+  try {
+    console.log('🔄 Resetting passwords...');
 
+    // Генерируем новые хэши
+    const newHash = await bcrypt.hash('123456', 10);
+    console.log('🔑 New hash generated:', newHash);
+
+    // Обновляем пароли в базе
+    await db.pool.query('UPDATE users SET password_hash = $1 WHERE id IN (19, 22)', [newHash]);
+
+    console.log('✅ Passwords reset successfully');
+    res.json({
+      success: true,
+      newHash,
+      message: 'Passwords reset to 123456',
+    });
+  } catch (error) {
+    console.error('❌ Error resetting passwords:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);

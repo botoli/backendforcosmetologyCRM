@@ -1,4 +1,4 @@
-// server/index.js - ИСПРАВЛЕННАЯ ФУНКЦИЯ ГЕНЕРАЦИИ СЛОТОВ
+// server/index.js - ПОЛНАЯ ВЕРСИЯ С ИСПРАВЛЕННЫМ CORS
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -22,14 +22,16 @@ app.use((req, res, next) => {
   next();
 });
 
-// ИСПРАВЛЕННЫЙ CORS - разрешаем все origins для разработки
+// ИСПРАВЛЕННЫЙ CORS - разрешаем Vercel домен и все нужные origins
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Разрешаем все origins в разработке
+      // Разрешаем запросы без origin (например, из Postman)
       if (!origin) return callback(null, true);
 
       const allowedOrigins = [
+        'https://cosmetology-crm.vercel.app', // ваш продакшен домен
+        'https://cosmetology-crm.vercel.app/', // с слешем на конце
         'http://localhost:3000',
         'http://localhost:3001',
         'http://localhost:5173',
@@ -39,26 +41,39 @@ app.use(
         'http://127.0.0.1:5173',
       ];
 
+      // Разрешаем запросы с любого из разрешенных доменов
       if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      } else {
-        console.log('CORS blocked for origin:', origin);
+        console.log('✅ CORS allowed for origin:', origin);
         return callback(null, true);
       }
+
+      // Также разрешаем поддомены Vercel
+      if (origin.endsWith('.vercel.app')) {
+        console.log('✅ CORS allowed for Vercel subdomain:', origin);
+        return callback(null, true);
+      }
+
+      console.log('❌ CORS blocked for origin:', origin);
+      return callback(new Error('CORS not allowed'), false);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+    exposedHeaders: ['Content-Range', 'X-Content-Range'],
   }),
 );
 
-// Обработка OPTIONS запросов
+// Явная обработка OPTIONS запросов (preflight)
 app.options('*', cors());
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
 
 // Инициализация базы данных
 const db = new Database();
+db.init().then(() => {
+  console.log('✅ Database initialized');
+});
 
 // Инициализация Telegram бота (если токен указан)
 let bot = null;
@@ -96,12 +111,18 @@ const authenticateToken = (req, res, next) => {
 
 // Health check
 app.get('/api/health', (req, res) => {
-  console.log('✅ Health check called');
+  console.log('✅ Health check called from:', req.headers.origin);
   res.json({
     status: 'OK',
     timestamp: new Date().toISOString(),
     database: 'Connected',
     telegramBot: bot ? 'Active' : 'Disabled',
+    cors: 'Enabled',
+    allowedOrigins: [
+      'https://cosmetology-crm.vercel.app',
+      'http://localhost:3000',
+      'http://localhost:3001',
+    ],
   });
 });
 
@@ -918,15 +939,26 @@ app.use('/api/*', (req, res) => {
 app.get('/', (req, res) => {
   res.json({
     message: 'Cosmetology API Server',
+    version: '1.0.0',
+    timestamp: new Date().toISOString(),
     endpoints: {
       health: '/api/health',
-      auth: '/api/auth/login, /api/auth/register, /api/auth/admin/login',
+      auth: '/api/auth/login, /api/auth/register, /api/auth/admin/login, /api/auth/me',
       services: '/api/services',
-      bookings: '/api/bookings, /api/bookings/my, /api/bookings/all, /api/bookings/:id/status',
+      bookings:
+        '/api/bookings, /api/bookings/my, /api/bookings/all, /api/bookings/:id/status, /api/bookings/available-times',
       clients: '/api/clients, /api/clients/:id',
       schedule: '/api/schedule, /api/schedule/working-hours, /api/schedule/breaks',
       reports: '/api/reports/generate, /api/reports/history, /api/reports/:id/download',
       telegram: '/api/telegram/link, /api/telegram/check-link/:code, /api/telegram/unlink',
+    },
+    cors: {
+      enabled: true,
+      allowedOrigins: [
+        'https://cosmetology-crm.vercel.app',
+        'http://localhost:3000',
+        'http://localhost:3001',
+      ],
     },
   });
 });
@@ -937,6 +969,16 @@ app.use('*', (req, res) => {
   res.status(404).json({
     error: 'Route not found',
     path: req.originalUrl,
+    method: req.method,
+  });
+});
+
+// Global error handler
+app.use((error, req, res, next) => {
+  console.error('💥 Global error handler:', error);
+  res.status(500).json({
+    error: 'Internal server error',
+    message: error.message,
   });
 });
 
@@ -945,6 +987,8 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
   console.log(`🔑 JWT secret: ${process.env.JWT_SECRET ? 'Set' : 'Using fallback'}`);
+  console.log(`🌐 CORS enabled for: https://cosmetology-crm.vercel.app`);
+  console.log(`🤖 Telegram bot: ${bot ? 'Active' : 'Disabled'}`);
 });
 
 // Graceful shutdown

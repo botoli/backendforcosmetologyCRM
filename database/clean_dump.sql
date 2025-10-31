@@ -1,3 +1,6 @@
+﻿SET client_encoding = 'WIN1251';
+SET session_replication_role = 'replica';
+
 -- Удаляем старые таблицы если существуют
 DROP TABLE IF EXISTS bookings CASCADE;
 DROP TABLE IF EXISTS notifications CASCADE;
@@ -73,8 +76,8 @@ CREATE TABLE IF NOT EXISTS telegram_links (
     FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Вставляем данные
-INSERT INTO services ("id","name","category","description","price","duration","is_active","created_at") VALUES 
+-- Вставляем данные в services
+INSERT INTO services (""id"",""name"",""category"",""description"",""price"",""duration"",""is_active"",""created_at"") VALUES 
 (1,'Ультразвуковая чистка лица','Чистка лица','Глубокая очистка пор с помощью ультразвука',1800,60,true,'2025-10-26 19:17:30'),
 (2,'Комбинированная чистка лица','Чистка лица','Комплексная чистка с ручной и аппаратной обработкой',2500,90,true,'2025-10-26 19:17:30'),
 (3,'Массаж лица комбинированный','Массаж лица','Расслабляющий и тонизирующий массаж',1500,45,true,'2025-10-26 19:17:30'),
@@ -113,11 +116,13 @@ INSERT INTO services ("id","name","category","description","price","duration","i
 (78,'Биоревитализация','Инъекции','Увлажнение и омоложение кожи',12000,60,true,'2025-10-29 21:04:00'),
 (79,'Пилинг','Уходовые процедуры','Химический пилинг',5000,45,true,'2025-10-29 21:04:00');
 
-INSERT INTO users ("id","email","phone","password_hash","name","surname","role","telegram_id","telegram_username","is_active","created_at","updated_at") VALUES 
-(19,'StIrin-ka@yandex.ru','+79254439529','$2a$10$Kh1q3rYWF9.5ZT7OIBWwGeB.UDEYbArYDktSJt8CkuVJrXl/Ih7da','Администратор','Системы','admin','7780599269','bobolie',true,'2025-10-27 00:32:36','2025-10-27 00:32:36'),
-(22,'standrey2007@gmail.com','89689370544','$2a$10$aT9w4nJuiUtstfZ0Ab47Se87z5frrnyOYbWi72zuASgu/jHu/KTGe','Андрей','qwe','client','964264865','Grmmy',true,'2025-10-27 10:48:03','2025-10-27 10:48:03');
+-- Вставляем данные в users
+INSERT INTO users (""id"",""email"",""phone"",""password_hash"",""name"",""surname"",""role"",""telegram_id"",""telegram_username"",""is_active"",""created_at"",""updated_at"") VALUES 
+(19,'StIrin-ka@yandex.ru','+79254439529','.5ZT7OIBWwGeB.UDEYbArYDktSJt8CkuVJrXl/Ih7da','Администратор','Системы','admin','7780599269','bobolie',true,'2025-10-27 00:32:36','2025-10-27 00:32:36'),
+(22,'standrey2007@gmail.com','89689370544','/jHu/KTGe','Андрей','qwe','client','964264865','Grmmy',true,'2025-10-27 10:48:03','2025-10-27 10:48:03');
 
-INSERT INTO telegram_links ("id","user_id","link_code","telegram_id","telegram_username","is_verified","expires_at","created_at") VALUES 
+-- Вставляем данные в telegram_links
+INSERT INTO telegram_links (""id"",""user_id"",""link_code"",""telegram_id"",""telegram_username"",""is_verified"",""expires_at"",""created_at"") VALUES 
 (8,1,'W9Y7MN','964264865','Grmmy',true,'2025-10-27 01:16:35','2025-10-27 01:06:35'),
 (9,1,'KYFPAT',NULL,NULL,false,'2025-10-27 10:17:55','2025-10-27 10:07:55'),
 (10,1,'NUI8K7','964264865','Grmmy',true,'2025-10-27 10:58:24','2025-10-27 10:48:24'),
@@ -137,9 +142,11 @@ CREATE INDEX IF NOT EXISTS idx_telegram_links_user_id ON telegram_links (user_id
 CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
 CREATE INDEX IF NOT EXISTS idx_users_phone ON users (phone);
 
--- Сбрасываем последовательности чтобы новые ID были корректными
+-- Обновляем последовательности
 SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));
 SELECT setval('services_id_seq', (SELECT MAX(id) FROM services));
 SELECT setval('bookings_id_seq', (SELECT MAX(id) FROM bookings));
 SELECT setval('notifications_id_seq', (SELECT MAX(id) FROM notifications));
 SELECT setval('telegram_links_id_seq', (SELECT MAX(id) FROM telegram_links));
+
+SET session_replication_role = 'origin';

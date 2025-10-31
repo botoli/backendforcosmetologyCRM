@@ -1,9 +1,9 @@
 // telegram/bot.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
-const TelegramBot = require('node-telegram-bot-api');
+const { TelegramBot: TelegramApi } = require('node-telegram-bot-api');
 
 class TelegramBot {
   constructor(token, db) {
-    this.bot = new TelegramBot(token, { polling: true });
+    this.bot = new TelegramApi(token, { polling: true });
     this.db = db;
     this.setupHandlers();
   }

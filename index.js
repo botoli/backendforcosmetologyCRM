@@ -1,4 +1,4 @@
-// server/index.js - ПОЛНАЯ ВЕРСИЯ С ИСПРАВЛЕННЫМ CORS
+// server/index.js - ПОЛНАЯ ВЕРСИЯ С ОТЛАДКОЙ ПАРОЛЕЙ
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -126,12 +126,17 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Auth routes
+// Auth routes - С ДОБАВЛЕННОЙ ОТЛАДКОЙ ПАРОЛЕЙ
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { phoneOrEmail, password } = req.body;
 
-    console.log('📥 Login request:', { phoneOrEmail });
+    console.log('🔐 DEBUG LOGIN START:', {
+      phoneOrEmail,
+      password,
+      passwordLength: password?.length,
+      actualPassword: password, // ВНИМАНИЕ: это покажет реальный пароль в логах
+    });
 
     const user = await db.findUserByPhoneOrEmail(phoneOrEmail);
     if (!user) {
@@ -141,9 +146,33 @@ app.post('/api/auth/login', async (req, res) => {
       });
     }
 
+    console.log('🔍 USER FOUND:', {
+      email: user.email,
+      hash: user.password_hash,
+      hashLength: user.password_hash?.length,
+    });
+
+    // Проверим bcrypt напрямую с тестовыми данными
+    const testHash = '$2a$10$8K1p/a0dRTphB6bZ6.8Qk.Yz6yq7bB5B5j5J5J5J5J5J5J5J5J5J5';
+    const testValid = await bcrypt.compare('123456', testHash);
+    console.log('🧪 TEST bcrypt with "123456":', testValid);
+
+    // Проверим введенный пароль
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+    console.log('✅ ACTUAL PASSWORD VALIDATION:', isPasswordValid);
+
     if (!isPasswordValid) {
-      console.log('❌ Invalid password for user:', user.email);
+      console.log('❌ PASSWORD MISMATCH DETAILS:');
+      console.log('🔍 Expected hash:', user.password_hash);
+      console.log('🔍 Provided password:', `"${password}"`);
+      console.log('🔍 Password length:', password?.length);
+      console.log(
+        '🔍 First 5 chars code:',
+        password
+          ?.split('')
+          .map((c) => c.charCodeAt(0))
+          .slice(0, 5),
+      );
       return res.status(401).json({
         error: 'Неверный пароль',
       });
@@ -416,7 +445,7 @@ app.delete('/api/services/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Bookings routes - ИСПРАВЛЕННЫЙ ЭНДПОИНТ
+// Bookings routes
 app.post('/api/bookings', authenticateToken, async (req, res) => {
   try {
     console.log('📥 Creating booking:', req.body);

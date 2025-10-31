@@ -1,4 +1,4 @@
-﻿SET client_encoding = 'WIN1251';
+SET client_encoding = 'WIN1251';
 SET session_replication_role = 'replica';
 
 -- Удаляем старые таблицы если существуют

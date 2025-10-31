@@ -1,7 +1,7 @@
-// telegram/bot.js - ИСПРАВЛЕННЫЙ ФАЙЛ
+// telegram/bot.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
 const TelegramBot = require('node-telegram-bot-api');
 
-class TelegramBotManager {
+class TelegramBot {
   constructor(token, db) {
     this.bot = new TelegramBot(token, { polling: true });
     this.db = db;
@@ -83,6 +83,12 @@ class TelegramBotManager {
       console.log(`🔐 Processing link code: ${code} from user: ${telegramId}`);
 
       try {
+        const link = await this.db.getTelegramLinkByCode(code);
+
+        if (!link) {
+          throw new Error('Link not found or expired');
+        }
+
         const result = await this.db.verifyTelegramLink(code, telegramId, telegramUsername);
 
         if (result) {
@@ -298,4 +304,4 @@ class TelegramBotManager {
   }
 }
 
-module.exports = TelegramBotManager;
+module.exports = TelegramBot;
